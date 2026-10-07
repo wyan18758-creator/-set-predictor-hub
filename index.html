@@ -1,256 +1,483 @@
 <!DOCTYPE html>
-<html lang="my" class="dark">
+<html lang="my">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SET Predictor Pro</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <!-- FontAwesome for Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts (Inter) -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Single-file Embedded PWA Manifest -->
-    <link rel="manifest" href='data:application/manifest+json;charset=utf-8,{"name":"SET Predictor Pro","short_name":"SET Pro","start_url":".","display":"standalone","background_color":"%23020617","theme_color":"%23020617","icons":[{"src":"https://cdn-icons-png.flaticon.com/512/3135/3135715.png","sizes":"512x512","type":"image/png"}]}'>
-    <meta name="theme-color" content="#020617">
+    <title>SET & Value Real-time Predictor</title>
     <style>
-        body { font-family: 'Inter', sans-serif; }
+        :root {
+            --bg-main: #0f172a;
+            --bg-card: #1e293b;
+            --bg-dark: #090d16;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-green: #4ade80;
+            --accent-blue: #38bdf8;
+            --accent-yellow: #eab308;
+            --accent-orange: #fbbf24;
+            --accent-red: #f87171;
+            --tier2-bg: #64748b;
+        }
+        body {
+            font-family: sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            margin: 0;
+            padding: 12px;
+        }
+        .container {
+            max-width: 520px;
+            margin: 0 auto;
+        }
+        h2 {
+            text-align: center;
+            color: var(--accent-blue);
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+        .card {
+            background-color: var(--bg-card);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 14px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            border: 1px solid #334155;
+        }
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            margin-bottom: 8px;
+            color: var(--text-muted);
+        }
+        .live-display {
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            margin: 6px 0;
+            color: var(--accent-green);
+            transition: all 0.3s ease;
+        }
+        .sub-live {
+            font-size: 18px;
+            text-align: center;
+            color: var(--accent-orange);
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        @keyframes pulseLive {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.03); color: var(--accent-blue); text-shadow: 0 0 10px rgba(56,189,248,0.5); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .live-update-effect {
+            animation: pulseLive 0.5s ease;
+        }
+        .section-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #cbd5e1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .info-text {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 3px;
+        }
+        .log-container {
+            background-color: var(--bg-dark);
+            border: 1px solid #1e293b;
+            border-radius: 6px;
+            padding: 8px;
+            font-family: monospace;
+            font-size: 11px;
+            color: var(--accent-blue);
+            max-height: 90px;
+            overflow-y: auto;
+            margin-top: 8px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .pred-box {
+            background: #334155;
+            padding: 10px 0;
+            text-align: center;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 16px;
+            letter-spacing: 1px;
+        }
+        .tier-1 {
+            background: var(--accent-yellow);
+            color: #000;
+            box-shadow: 0 0 8px rgba(234, 179, 8, 0.4);
+        }
+        .tier-2 {
+            background: var(--tier2-bg);
+            color: #fff;
+        }
+        .badge {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: #334155;
+            color: var(--accent-blue);
+        }
+        .checker-box {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+            align-items: center;
+        }
+        .checker-input {
+            width: 60px;
+            background: var(--bg-dark);
+            border: 1px solid #475569;
+            color: #fff;
+            padding: 6px;
+            text-align: center;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .btn {
+            background: var(--accent-blue);
+            color: #0f172a;
+            border: none;
+            padding: 6px 12px;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .btn:active { opacity: 0.8; }
+        .result-msg {
+            font-size: 12px;
+            margin-top: 8px;
+            font-weight: bold;
+            text-align: center;
+        }
     </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-white">
+<body>
 
-    <!-- Top Navbar -->
-    <header class="bg-slate-900/80 backdrop-blur-md border-b border-slate-800 sticky top-0 z-50">
-        <div class="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
-            <div class="flex items-center space-x-2">
-                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                    <i class="fa-solid fa-chart-line text-slate-950 text-lg"></i>
-                </div>
-                <div>
-                    <h1 class="font-bold text-base tracking-wide text-white">SET Predictor</h1>
-                    <p class="text-xs text-emerald-400 font-medium">Pro All-in-One App</p>
-                </div>
-            </div>
-            <div class="flex items-center space-x-2">
-                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse mr-1.5"></span> Single File
-                </span>
-            </div>
+<div class="container">
+    <h2>SET & Value Real-time Predictor</h2>
+
+    <!-- Live Status Panel -->
+    <div class="card">
+        <div class="status-bar">
+            <span id="current-time">Time: --:--:--</span>
+            <span id="connection-status" style="color: var(--accent-green);">● Live Connected</span>
         </div>
-    </header>
+        <div class="live-display" id="live-set">SET: --</div>
+        <div class="sub-live" id="live-val">Value: --</div>
+    </div>
 
-    <!-- Main Content Container -->
-    <main class="max-w-md mx-auto w-full px-4 py-5 space-y-5 mb-16">
-
-        <!-- Status Card / Market Trend -->
-        <div class="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-4 shadow-xl backdrop-blur-sm relative overflow-hidden">
-            <div class="absolute -right-10 -bottom-10 w-32 h-32 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none"></div>
-            <div class="flex items-center justify-between mb-3">
-                <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Market Status</span>
-                <span id="trendBadge" class="px-2.5 py-0.5 rounded-md text-xs font-bold bg-slate-800 text-slate-300">စောင့်ဆိုင်းနေသည်</span>
-            </div>
-            <div class="grid grid-cols-2 gap-3">
-                <div class="bg-slate-950/50 border border-slate-800/60 rounded-xl p-3">
-                    <p class="text-xs text-slate-400 mb-1">Current Price</p>
-                    <h3 id="currentPriceDisplay" class="text-lg font-bold text-white tracking-tight">---</h3>
-                </div>
-                <div class="bg-slate-950/50 border border-slate-800/60 rounded-xl p-3">
-                    <p class="text-xs text-slate-400 mb-1">Base Digits</p>
-                    <h3 id="baseDigitsDisplay" class="text-lg font-bold text-emerald-400 tracking-wider">-----</h3>
-                </div>
-            </div>
+    <!-- Morning Session -->
+    <div class="card">
+        <div class="section-title">
+            <span>🌅 Morning Session</span>
+            <span class="badge">Output: 11:35</span>
+        </div>
+        <div class="info-text" id="m-status-text">09:30 - 11:30 ထိ တိုက်ရိုက်ဒေတာ မှတ်တမ်းတင်နေသည်...</div>
+        <div class="log-container" id="m-logs">Logs: စောင့်ဆိုင်းနေသည်...</div>
+        <div class="grid" id="m_preds">
+            <div class="pred-box">--</div><div class="pred-box">--</div><div class="pred-box">--</div><div class="pred-box">--</div><div class="pred-box">--</div>
+            <div class="pred-box">--</div><div class="pred-box">--</div><div class="pred-box">--</div><div class="pred-box">--</div><div class="pred-box">--</div>
+            <div class="pred-box">--</div><div class="pred-box">--</div><div class="pred-box">--</div><div class="pred-box">--</div><div class="pred-box">--</div>
         </div>
 
-        <!-- Action / Prediction Trigger -->
-        <div class="space-y-3">
-            <button onclick="runPrediction()" class="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-bold py-3.5 px-4 rounded-xl shadow-lg shadow-emerald-500/20 transition-all duration-200 active:scale-[0.98] flex items-center justify-center space-x-2 cursor-pointer">
-                <i class="fa-solid fa-wand-magic-sparkles"></i>
-                <span>ခန့်မှန်းချက် ထုတ်မည် & Cloud သိမ်းမည်</span>
-            </button>
+        <!-- Result Checker for Morning -->
+        <div style="margin-top: 12px; border-top: 1px dashed #334155; padding-top: 10px;">
+            <div style="font-size: 12px; color: var(--text-muted);">🎯 Morning Result Checker</div>
+            <div class="checker-box">
+                <span>SET Last:</span>
+                <input type="number" id="m-check-set" class="checker-input" placeholder="0-9" min="0" max="9">
+                <span>Val Last:</span>
+                <input type="number" id="m-check-val" class="checker-input" placeholder="0-9" min="0" max="9">
+                <button class="btn" onclick="checkResult('morning')">စစ်ဆေးမည်</button>
+            </div>
+            <div id="m-check-result" class="result-msg"></div>
+        </div>
+    </div>
+
+    <!-- Evening Session -->
+    <div class="card">
+        <div class="section-title">
+            <span>🌇 Evening Session</span>
+            <span class="badge">Output: 15:35</span>
+        </div>
+        <div class="info-text" id="e-status-text">13:30 - 15:30 ထိ တိုက်ရိုက်ဒေတာ မှတ်တမ်းတင်နေသည်...</div>
+        <div class="log-container" id="e-logs">Logs: စောင့်ဆိုင်းနေသည်...</div>
+        <div class="grid" id="e_preds">
+            <div class="pred-box">--</div><div class="pred-box">--</div><div class="pred-box">--</div><div class="pred-box">--</div><div class="pred-box">--</div>
+            <div class="pred-box">--</div><div class="pred-box">--</div><div class="pred-box">--</div><div class="pred-box">--</div><div class="pred-box">--</div>
+            <div class="pred-box">--</div><div class="pred-box">--</div><div class="pred-box">--</div><div class="pred-box">--</div><div class="pred-box">--</div>
         </div>
 
-        <!-- Tier-1 (Top 5 Hits) -->
-        <div class="space-y-3">
-            <div class="flex items-center justify-between">
-                <h2 class="text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center space-x-2">
-                    <i class="fa-solid fa-star text-amber-400"></i>
-                    <span>Tier-1 (ထိပ်တန်း ၅ ကွက်)</span>
-                </h2>
-                <span class="text-xs text-slate-500">High Priority</span>
+        <!-- Result Checker for Evening -->
+        <div style="margin-top: 12px; border-top: 1px dashed #334155; padding-top: 10px;">
+            <div style="font-size: 12px; color: var(--text-muted);">🎯 Evening Result Checker</div>
+            <div class="checker-box">
+                <span>SET Last:</span>
+                <input type="number" id="e-check-set" class="checker-input" placeholder="0-9" min="0" max="9">
+                <span>Val Last:</span>
+                <input type="number" id="e-check-val" class="checker-input" placeholder="0-9" min="0" max="9">
+                <button class="btn" onclick="checkResult('evening')">စစ်ဆေးမည်</button>
             </div>
-            <div id="tier1Container" class="grid grid-cols-5 gap-2">
-                <div class="bg-slate-900 border border-slate-800 rounded-xl py-3 text-center font-bold text-slate-500 text-sm">--</div>
-                <div class="bg-slate-900 border border-slate-800 rounded-xl py-3 text-center font-bold text-slate-500 text-sm">--</div>
-                <div class="bg-slate-900 border border-slate-800 rounded-xl py-3 text-center font-bold text-slate-500 text-sm">--</div>
-                <div class="bg-slate-900 border border-slate-800 rounded-xl py-3 text-center font-bold text-slate-500 text-sm">--</div>
-                <div class="bg-slate-900 border border-slate-800 rounded-xl py-3 text-center font-bold text-slate-500 text-sm">--</div>
-            </div>
+            <div id="e-check-result" class="result-msg"></div>
         </div>
+    </div>
+</div>
 
-        <!-- Tier-2 (Next 10 Hits) -->
-        <div class="space-y-3">
-            <div class="flex items-center justify-between">
-                <h2 class="text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center space-x-2">
-                    <i class="fa-solid fa-layer-group text-teal-400"></i>
-                    <span>Tier-2 (နောက်ထပ် ၁၀ ကွက်)</span>
-                </h2>
-                <span class="text-xs text-slate-500">Supporting</span>
-            </div>
-            <div id="tier2Container" class="grid grid-cols-5 gap-2">
-                <div class="bg-slate-900 border border-slate-800 rounded-xl py-2.5 text-center font-bold text-slate-500 text-xs">--</div>
-                <div class="bg-slate-900 border border-slate-800 rounded-xl py-2.5 text-center font-bold text-slate-500 text-xs">--</div>
-                <div class="bg-slate-900 border border-slate-800 rounded-xl py-2.5 text-center font-bold text-slate-500 text-xs">--</div>
-                <div class="bg-slate-900 border border-slate-800 rounded-xl py-2.5 text-center font-bold text-slate-500 text-xs">--</div>
-                <div class="bg-slate-900 border border-slate-800 rounded-xl py-2.5 text-center font-bold text-slate-500 text-xs">--</div>
-                <div class="bg-slate-900 border border-slate-800 rounded-xl py-2.5 text-center font-bold text-slate-500 text-xs">--</div>
-                <div class="bg-slate-900 border border-slate-800 rounded-xl py-2.5 text-center font-bold text-slate-500 text-xs">--</div>
-                <div class="bg-slate-900 border border-slate-800 rounded-xl py-2.5 text-center font-bold text-slate-500 text-xs">--</div>
-                <div class="bg-slate-900 border border-slate-800 rounded-xl py-2.5 text-center font-bold text-slate-500 text-xs">--</div>
-                <div class="bg-slate-900 border border-slate-800 rounded-xl py-2.5 text-center font-bold text-slate-500 text-xs">--</div>
-            </div>
-        </div>
+<script>
+    let morningLogs = [];
+    let eveningLogs = [];
+    let morningGenerated = false;
+    let eveningGenerated = false;
 
-        <!-- History & Cloud Section -->
-        <div class="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-4 shadow-xl backdrop-blur-sm space-y-3">
-            <h2 class="text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center space-x-2">
-                <i class="fa-solid fa-clock-rotate-left text-emerald-400"></i>
-                <span>မှတ်တမ်းနှင့် Cloud အချက်အလက်</span>
-            </h2>
-            <div id="historyContainer" class="text-xs text-slate-400 space-y-1">
-                <p>ခန့်မှန်းချက် မှတ်တမ်းများကို ဤနေရာတွင် ကြည့်ရှုနိုင်ပါသည်။</p>
-            </div>
-        </div>
+    let morningPairsData = [];
+    let eveningPairsData = [];
+    let lastSetPrice = null;
 
-    </main>
+    function loadFromLocalStorage() {
+        const savedMorning = localStorage.getItem('set_morning_pairs');
+        const savedEvening = localStorage.getItem('set_evening_pairs');
 
-    <!-- Footer Status -->
-    <footer class="bg-slate-900/90 border-t border-slate-800 py-3 text-center text-xs text-slate-500">
-        <p>SET Predictor Pro &bull; All-in-One Single File</p>
-    </footer>
-
-    <!-- Supabase JS Client SDK -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-    <!-- Core Engine & Logic -->
-    <script>
-        // Supabase Configuration (Optional: URL နဲ့ Key ထည့်နိုင်ပါသည်)
-        const SUPABASE_URL = 'YOUR_SUPABASE_URL';
-        const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
-        
-        let supabaseClient = null;
-        if (SUPABASE_URL !== 'YOUR_SUPABASE_URL') {
-            supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        if (savedMorning) {
+            morningPairsData = JSON.parse(savedMorning);
+            renderGrid('m_preds', morningPairsData);
+            document.getElementById('m-status-text').innerText = "✅ သိမ်းဆည်းထားသော မနက်ပိုင်း ခန့်မှန်းချက်များ";
+            morningGenerated = true;
         }
 
-        const resultHistory = ['24', '46', '67', '79', '92', '12', '34', '56', '78', '90', '13', '35', '57', '79', '91'];
+        if (savedEvening) {
+            eveningPairsData = JSON.parse(savedEvening);
+            renderGrid('e_preds', eveningPairsData);
+            document.getElementById('e-status-text').innerText = "✅ သိမ်းဆည်းထားသော ညနေပိုင်း ခန့်မှန်းချက်များ";
+            eveningGenerated = true;
+        }
+    }
 
-        function analyzeTrend(prices) {
-            if (!prices || prices.length < 2) return { text: "FLAT", class: "bg-slate-800 text-slate-300 border-slate-700" };
-            const diff = prices[prices.length - 1] - prices[prices.length - 2];
-            if (diff > 1.0) return { text: "STRONG UP", class: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" };
-            if (diff > 0) return { text: "UP", class: "bg-teal-500/20 text-teal-400 border-teal-500/30" };
-            if (diff < -1.0) return { text: "STRONG DOWN", class: "bg-rose-500/20 text-rose-400 border-rose-500/30" };
-            if (diff < 0) return { text: "DOWN", class: "bg-orange-500/20 text-orange-400 border-orange-500/30" };
-            return { text: "FLAT", class: "bg-slate-800 text-slate-300 border-slate-700" };
+    function getSetLastDigit(val) {
+        const numStr = parseFloat(val).toFixed(2);
+        const lastChar = numStr.slice(-1);
+        const digit = parseInt(lastChar, 10);
+        return isNaN(digit) ? 0 : digit;
+    }
+
+    function getValueLastDigit(val) {
+        const numStr = parseFloat(val).toFixed(2);
+        const parts = numStr.split('.');
+        const lastDigit = parseInt(parts[0].slice(-1), 10);
+        return isNaN(lastDigit) ? 0 : lastDigit;
+    }
+
+    function analyzeLogsWithMomentum(logs) {
+        let setScores = {};
+        let valScores = {};
+
+        logs.forEach((log, index) => {
+            let sDigit = getSetLastDigit(log.price);
+            let vDigit = getValueLastDigit(log.val);
+
+            let weight = 1 + (index / logs.length);
+            setScores[sDigit] = (setScores[sDigit] || 0) + weight;
+            valScores[vDigit] = (valScores[vDigit] || 0) + weight;
+        });
+
+        let sortedSet = Object.keys(setScores).sort((a, b) => setScores[b] - setScores[a]).map(Number);
+        let sortedVal = Object.keys(valScores).sort((a, b) => valScores[b] - valScores[a]).map(Number);
+
+        for (let i = 0; i <= 9; i++) {
+            if (!sortedSet.includes(i)) sortedSet.push(i);
+            if (!sortedVal.includes(i)) sortedVal.push(i);
         }
 
-        function build5Digits(lastDigit, trend) {
-            let base = [];
-            for (let i = 0; i < 5; i++) {
-                let digit = (lastDigit + i) % 10;
-                base.push(digit);
-            }
-            return base;
-        }
+        return {
+            topSet: sortedSet.slice(0, 5),
+            topVal: sortedVal.slice(0, 5)
+        };
+    }
 
-        async function saveToCloud(predictionData) {
-            if (!supabaseClient) return;
-            try {
-                await supabaseClient.from('predictions').insert([predictionData]);
-            } catch (err) {
-                console.error('Cloud error:', err);
+    function generateDynamicPairs(topSet, topVal) {
+        let allPairs = [];
+        for (let i = 0; i < topSet.length; i++) {
+            for (let j = 0; j < topVal.length; j++) {
+                allPairs.push(`${topSet[i]}${topVal[j]}`);
             }
         }
 
-        function runPrediction() {
-            const mockPrices = [1340.20, 1342.50, 1345.50];
-            const currentPrice = mockPrices[mockPrices.length - 1];
-            const lastDigit = Math.floor((currentPrice * 10) % 10);
-            
-            const trend = analyzeTrend(mockPrices);
-            const baseDigits = build5Digits(lastDigit, trend.text);
-
-            // Update UI Header Stats
-            document.getElementById('currentPriceDisplay').innerText = currentPrice.toFixed(2);
-            const trendBadge = document.getElementById('trendBadge');
-            trendBadge.innerText = trend.text;
-            trendBadge.className = `px-2.5 py-0.5 rounded-md text-xs font-bold border ${trend.class}`;
-            document.getElementById('baseDigitsDisplay').innerText = baseDigits.join(', ');
-
-            let generatedPairs = [];
-            for (let i = 0; i < baseDigits.length; i++) {
-                for (let j = 0; j < baseDigits.length; j++) {
-                    if (i !== j) {
-                        generatedPairs.push(`${baseDigits[i]}${baseDigits[j]}`);
-                    }
+        let finalPairs = [];
+        for (let k = 0; k < 15; k++) {
+            if (k < allPairs.length) {
+                if (k < 5) {
+                    finalPairs.push({ pair: allPairs[k], tier: 'tier-1' });
+                } else {
+                    finalPairs.push({ pair: allPairs[k], tier: 'tier-2' });
                 }
             }
+        }
+        return finalPairs;
+    }
 
-            let uniquePairs = [...new Set(generatedPairs)];
-            while (uniquePairs.length < 15) {
-                let r1 = baseDigits[Math.floor(Math.random() * baseDigits.length)];
-                let r2 = Math.floor(Math.random() * 10);
-                let p = `${r1}${r2}`;
-                if (!uniquePairs.includes(p)) uniquePairs.push(p);
+    function renderGrid(elementId, pairs) {
+        const container = document.getElementById(elementId);
+        container.innerHTML = '';
+        pairs.forEach(item => {
+            const box = document.createElement('div');
+            box.className = `pred-box ${item.tier}`;
+            box.innerText = item.pair;
+            container.appendChild(box);
+        });
+    }
+
+    function checkResult(sessionType) {
+        let setInputId = sessionType === 'morning' ? 'm-check-set' : 'e-check-set';
+        let valInputId = sessionType === 'morning' ? 'm-check-val' : 'e-check-val';
+        let resultMsgId = sessionType === 'morning' ? 'm-check-result' : 'e-check-result';
+        let pairsData = sessionType === 'morning' ? morningPairsData : eveningPairsData;
+
+        let sDigit = document.getElementById(setInputId).value.trim();
+        let vDigit = document.getElementById(valInputId).value.trim();
+        let msgEl = document.getElementById(resultMsgId);
+
+        if (sDigit === '' || vDigit === '') {
+            msgEl.style.color = varColor('--accent-red');
+            msgEl.innerText = "⚠️ ဂဏန်းနှစ်ခုစလုံး အပြည့်အစုံ ရိုက်ထည့်ပါ";
+            return;
+        }
+
+        if (pairsData.length === 0) {
+            msgEl.style.color = varColor('--accent-orange');
+            msgEl.innerText = "⚠️ ခန့်မှန်းချက်ကွက်များ ထွက်ပေါ်လာခြင်း မရှိသေးပါ";
+            return;
+        }
+
+        let targetPair = `${sDigit}${vDigit}`;
+        let foundTier1 = pairsData.find(p => p.pair === targetPair && p.tier === 'tier-1');
+        let foundTier2 = pairsData.find(p => p.pair === targetPair && p.tier === 'tier-2');
+
+        if (foundTier1) {
+            msgEl.style.color = varColor('--accent-green');
+            msgEl.innerText = `🎉 🎊 အထူးမှန်ကန်သည်! (${targetPair}) သည် Tier-1 (အဝါရောင်) ထဲတွင် ပါဝင်ပါသည်။`;
+        } else if (foundTier2) {
+            msgEl.style.color = varColor('--accent-yellow');
+            msgEl.innerText = `✨ မှန်ကန်သည်! (${targetPair}) သည် Tier-2 (မီးခိုးရောင်) ထဲတွင် ပါဝင်ပါသည်။`;
+        } else {
+            msgEl.style.color = varColor('--accent-red');
+            msgEl.innerText = `❌ မမှန်ပါ (${targetPair}) သည် ထွက်ထားသော ၁၅ ကွက်ထဲတွင် မပါဝင်ပါ။`;
+        }
+    }
+
+    function varColor(name) {
+        return getComputedStyle(document.documentElement).getPropertyValue(name);
+    }
+
+    async function fetchMarketData() {
+        const targetUrl = 'https://query1.finance.yahoo.com/v8/finance/chart/^SET.BK';
+        const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(targetUrl);
+
+        try {
+            let response = await fetch(targetUrl).catch(() => null);
+            if (!response || !response.ok) {
+                response = await fetch(proxyUrl);
+            }
+            if (!response.ok) throw new Error("Network response failed");
+
+            const data = await response.json();
+            const result = data.chart.result[0];
+            const meta = result.meta;
+            
+            const currentPrice = meta.regularMarketPrice;
+            const currentVal = meta.regularMarketVolume || meta.chartPreviousClose || 0;
+
+            const setEl = document.getElementById('live-set');
+            const valEl = document.getElementById('live-val');
+
+            setEl.innerText = `SET: ${currentPrice.toFixed(2)}`;
+            valEl.innerText = `Value: ${currentVal.toLocaleString()}`;
+
+            if (lastSetPrice !== currentPrice) {
+                setEl.classList.add('live-update-effect');
+                valEl.classList.add('live-update-effect');
+                setTimeout(() => {
+                    setEl.classList.remove('live-update-effect');
+                    valEl.classList.remove('live-update-effect');
+                }, 500);
+                lastSetPrice = currentPrice;
             }
 
-            const tier1 = uniquePairs.slice(0, 5);
-            const tier2 = uniquePairs.slice(5, 15);
+            document.getElementById('connection-status').innerText = "● Live Connected";
+            document.getElementById('connection-status').style.color = "var(--accent-green)";
 
-            // Render Tier 1
-            const t1Container = document.getElementById('tier1Container');
-            t1Container.innerHTML = '';
-            tier1.forEach(pair => {
-                t1Container.innerHTML += `
-                    <div class="bg-emerald-500/10 border border-emerald-500/30 rounded-xl py-3 text-center font-extrabold text-emerald-400 text-sm shadow-sm transition-all hover:scale-105">
-                        ${pair}
-                    </div>
-                `;
-            });
+            const now = new Date();
+            const dayOfWeek = now.getDay();
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+            const timeVal = hours * 100 + minutes;
+            const timeString = now.toTimeString().split(' ')[0];
 
-            // Render Tier 2
-            const t2Container = document.getElementById('tier2Container');
-            t2Container.innerHTML = '';
-            tier2.forEach(pair => {
-                t2Container.innerHTML += `
-                    <div class="bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-xl py-2.5 text-center font-bold text-slate-300 text-xs transition-all">
-                        ${pair}
-                    </div>
-                `;
-            });
+            if (dayOfWeek === 0 || dayOfWeek === 6) {
+                document.getElementById('connection-status').innerText = "● Market Closed (Weekend)";
+                document.getElementById('connection-status').style.color = "var(--accent-orange)";
+                return;
+            }
 
-            // Payload Sync
-            saveToCloud({
-                price: currentPrice,
-                trend: trend.text,
-                base_digits: baseDigits.join(','),
-                tier1: tier1.join(','),
-                tier2: tier2.join(',')
-            });
+            if (timeVal >= 930 && timeVal <= 1130) {
+                morningLogs.push({ time: timeString, price: currentPrice, val: currentVal });
+                let logText = morningLogs.slice(-6).map(l => `[${l.time}] S:${l.price.toFixed(2)} | V:${l.val}`).join('\n');
+                document.getElementById('m-logs').innerText = logText;
+                document.getElementById('m-status-text').innerText = `📡 တိုက်ရိုက်မှတ်တမ်းယူဆဲ (စုစုပေါင်း: ${morningLogs.length} ခု)`;
+            }
 
-            // Render History & Analytics info
-            const historyContainer = document.getElementById('historyContainer');
-            historyContainer.innerHTML = `
-                <div class="flex justify-between items-center py-1 border-b border-slate-800/60">
-                    <span>နောက်ဆုံးစစ်ဆေးချိန်:</span>
-                    <span class="text-white font-medium">${new Date().toLocaleTimeString()}</span>
-                </div>
-                <div class="flex justify-between items-center py-1">
-                    <span>စနစ်အခြေအနေ:</span>
-                    <span class="text-emerald-400 font-medium">အောင်မြင်သည် (15 ကွက် ထွက်ရှိသည်)</span>
-                </div>
-            `;
+            if (timeVal >= 1135 && timeVal <= 1200 && !morningGenerated && morningLogs.length > 0) {
+                morningGenerated = true;
+                let analyzed = analyzeLogsWithMomentum(morningLogs);
+                morningPairsData = generateDynamicPairs(analyzed.topSet, analyzed.topVal);
+                renderGrid('m_preds', morningPairsData);
+                localStorage.setItem('set_morning_pairs', JSON.stringify(morningPairsData));
+                document.getElementById('m-status-text').innerText = "✅ မနက်ပိုင်း 11:35 တွင် ထွက်ရှိပြီး";
+            }
+
+            if (timeVal >= 1330 && timeVal <= 1530) {
+                eveningLogs.push({ time: timeString, price: currentPrice, val: currentVal });
+                let logText = eveningLogs.slice(-6).map(l => `[${l.time}] S:${l.price.toFixed(2)} | V:${l.val}`).join('\n');
+                document.getElementById('e-logs').innerText = logText;
+                document.getElementById('e-status-text').innerText = `📡 တိုက်ရိုက်မှတ်တမ်းယူဆဲ (စုစုပေါင်း: ${eveningLogs.length} ခု)`;
+            }
+
+            if (timeVal >= 1535 && timeVal <= 1600 && !eveningGenerated && eveningLogs.length > 0) {
+                eveningGenerated = true;
+                let analyzed = analyzeLogsWithMomentum(eveningLogs);
+                eveningPairsData = generateDynamicPairs(analyzed.topSet, analyzed.topVal);
+                renderGrid('e_preds', eveningPairsData);
+                localStorage.setItem('set_evening_pairs', JSON.stringify(eveningPairsData));
+                document.getElementById('e-status-text').innerText = "✅ ညနေပိုင်း 3:35 တွင် ထွက်ရှိပြီး";
+            }
+
+        } catch (error) {
+            console.error("Fetch error:", error);
+            document.getElementById('connection-status').innerText = "● Connection Retrying...";
+            document.getElementById('connection-status').style.color = "#f87171";
         }
-    </script>
+    }
+
+    setInterval(() => {
+        const now = new Date();
+        document.getElementById('current-time').innerText = `Time: ${now.toTimeString().split(' ')[0]}`;
+    }, 1000);
+
+    loadFromLocalStorage();
+    fetchMarketData();
+    setInterval(fetchMarketData, 10000);
+</script>
+
 </body>
 </html>
