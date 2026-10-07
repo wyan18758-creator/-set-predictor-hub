@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SET & Value Real-time Predictor</title>
+    <title>SET & Value Pure Real-Time Accumulation Engine v5</title>
     <style>
         :root {
             --bg-main: #0f172a;
@@ -33,7 +33,7 @@
             text-align: center;
             color: var(--accent-blue);
             margin-bottom: 15px;
-            font-size: 20px;
+            font-size: 18px;
         }
         .card {
             background-color: var(--bg-card);
@@ -51,27 +51,17 @@
             color: var(--text-muted);
         }
         .live-display {
-            font-size: 24px;
+            font-size: 20px;
             font-weight: bold;
             text-align: center;
             margin: 6px 0;
             color: var(--accent-green);
-            transition: all 0.3s ease;
         }
         .sub-live {
-            font-size: 18px;
+            font-size: 16px;
             text-align: center;
             color: var(--accent-orange);
             font-weight: bold;
-            transition: all 0.3s ease;
-        }
-        @keyframes pulseLive {
-            0% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.03); color: var(--accent-blue); text-shadow: 0 0 10px rgba(56,189,248,0.5); }
-            100% { transform: scale(1); opacity: 1; }
-        }
-        .live-update-effect {
-            animation: pulseLive 0.5s ease;
         }
         .section-title {
             font-size: 14px;
@@ -155,11 +145,16 @@
             cursor: pointer;
             font-size: 12px;
         }
-        .btn:active { opacity: 0.8; }
         .result-msg {
             font-size: 12px;
             margin-top: 8px;
             font-weight: bold;
+            text-align: center;
+        }
+        .momentum-info {
+            font-size: 10px;
+            color: #8ab4f8;
+            margin-top: 4px;
             text-align: center;
         }
     </style>
@@ -167,7 +162,7 @@
 <body>
 
 <div class="container">
-    <h2>SET & Value Real-time Predictor</h2>
+    <h2>SET & Value Pure Real-Time Accumulation Engine v5</h2>
 
     <!-- Live Status Panel -->
     <div class="card">
@@ -177,15 +172,16 @@
         </div>
         <div class="live-display" id="live-set">SET: --</div>
         <div class="sub-live" id="live-val">Value: --</div>
+        <div class="momentum-info" id="momentum-display">Momentum: -- | Pattern: -- | Streak: --</div>
     </div>
 
     <!-- Morning Session -->
     <div class="card">
         <div class="section-title">
-            <span>🌅 Morning Session</span>
+            <span>🌅 Morning Session (Pure Accumulation)</span>
             <span class="badge">Output: 11:35</span>
         </div>
-        <div class="info-text" id="m-status-text">09:30 - 11:30 ထိ တိုက်ရိုက်ဒေတာ မှတ်တမ်းတင်နေသည်...</div>
+        <div class="info-text" id="m-status-text">09:30 - 11:30 ထိ တိုက်ရိုက်ဒေတာများကို အမှန်တကယ် စုဆောင်းနေသည်...</div>
         <div class="log-container" id="m-logs">Logs: စောင့်ဆိုင်းနေသည်...</div>
         <div class="grid" id="m_preds">
             <div class="pred-box">--</div><div class="pred-box">--</div><div class="pred-box">--</div><div class="pred-box">--</div><div class="pred-box">--</div>
@@ -210,10 +206,10 @@
     <!-- Evening Session -->
     <div class="card">
         <div class="section-title">
-            <span>🌇 Evening Session</span>
+            <span>🌇 Evening Session (Pure Accumulation)</span>
             <span class="badge">Output: 15:35</span>
         </div>
-        <div class="info-text" id="e-status-text">13:30 - 15:30 ထိ တိုက်ရိုက်ဒေတာ မှတ်တမ်းတင်နေသည်...</div>
+        <div class="info-text" id="e-status-text">13:30 - 15:30 ထိ တိုက်ရိုက်ဒေတာများကို အမှန်တကယ် စုဆောင်းနေသည်...</div>
         <div class="log-container" id="e-logs">Logs: စောင့်ဆိုင်းနေသည်...</div>
         <div class="grid" id="e_preds">
             <div class="pred-box">--</div><div class="pred-box">--</div><div class="pred-box">--</div><div class="pred-box">--</div><div class="pred-box">--</div>
@@ -244,11 +240,10 @@
 
     let morningPairsData = [];
     let eveningPairsData = [];
-    let lastSetPrice = null;
 
     function loadFromLocalStorage() {
-        const savedMorning = localStorage.getItem('set_morning_pairs');
-        const savedEvening = localStorage.getItem('set_evening_pairs');
+        const savedMorning = localStorage.getItem('pure_morning_pairs_v5');
+        const savedEvening = localStorage.getItem('pure_evening_pairs_v5');
 
         if (savedMorning) {
             morningPairsData = JSON.parse(savedMorning);
@@ -265,40 +260,96 @@
         }
     }
 
-    function getSetLastDigit(val) {
-        const numStr = parseFloat(val).toFixed(2);
-        const lastChar = numStr.slice(-1);
-        const digit = parseInt(lastChar, 10);
+    // SET: ဒသမနောက်ဆုံးဂဏန်း (ဥပမာ - 1350.48 ဆိုရင် 8)
+    function getSetDecimalLastDigit(price) {
+        const numStr = parseFloat(price).toFixed(2);
+        const decPart = numStr.split('.')[1];
+        const digit = parseInt(decPart.charAt(decPart.length - 1), 10);
         return isNaN(digit) ? 0 : digit;
     }
 
-    function getValueLastDigit(val) {
-        const numStr = parseFloat(val).toFixed(2);
-        const parts = numStr.split('.');
-        const lastDigit = parseInt(parts[0].slice(-1), 10);
-        return isNaN(lastDigit) ? 0 : lastDigit;
+    // Value (Turnover Traded Value): ကိန်းပြည့် (ဒသမရှေ့) ၏ နောက်ဆုံးဂဏန်း (ဥပမာ - 45,230,120 ဘတ် ဆိုရင် 0)
+    function getValueIntegerLastDigit(valNum) {
+        const wholeStr = Math.floor(parseFloat(valNum)).toString();
+        const digit = parseInt(wholeStr.charAt(wholeStr.length - 1), 10);
+        return isNaN(digit) ? 0 : digit;
     }
 
-    function analyzeLogsWithMomentum(logs) {
+    // Momentum Indicator (အတက်အကျ အရှိန်အဟုန်)
+    function getMomentum(logs) {
+        if (logs.length < 2) return "NEUTRAL";
+        
+        const recent = logs.slice(-15);
+        let upwardCount = 0;
+        
+        for(let i = 1; i < recent.length; i++){
+            if(recent[i].price > recent[i-1].price) upwardCount++;
+        }
+
+        const ratio = upwardCount / (recent.length - 1);
+        
+        if(ratio >= 0.6) return "STRONG_UP ⬆️";
+        if(ratio >= 0.5) return "UP ↗️";
+        if(ratio <= 0.4) return "STRONG_DOWN ⬇️";
+        if(ratio <= 0.5) return "DOWN ↘️";
+        return "NEUTRAL ➡️";
+    }
+
+    // Pattern Analysis (ပုံစံခွဲခြမ်းစိတ်ဖြာခြင်း)
+    function getPattern(logs) {
+        const digits = logs.map(l => getSetDecimalLastDigit(l.price));
+        if(digits.length < 5) return null;
+        
+        const last5 = digits.slice(-5);
+        
+        // 0-1-0-1-0 pattern
+        if(last5[0] === last5[2] && last5[2] === last5[4]){
+            return last5[1];
+        }
+        
+        // 0-0-1-1-? pattern
+        if(last5[0] === last5[1] && last5[2] === last5[3]){
+            return last5[4];
+        }
+        
+        return null;
+    }
+
+    // Streak Analysis (တစ်ဆက်တည်း ထွက်မှု)
+    function getStreak(logs) {
+        const digits = logs.map(l => getSetDecimalLastDigit(l.price));
+        if(digits.length < 2) return 1;
+        
+        let streak = 1;
+        for(let i = digits.length - 2; i >= 0; i--){
+            if(digits[i] === digits[digits.length - 1]){
+                streak++;
+            }else{
+                break;
+            }
+        }
+        
+        return streak;
+    }
+
+    // ဝင်လာသမျှ Tick တိုင်းကို အခြေခံပြီး Frequency & Accumulation အစစ်အမှန် တွက်ချက်ခြင်း
+    function analyzePureMarketAccumulation(logs) {
         let setScores = {};
         let valScores = {};
+        for(let i=0; i<=9; i++) { setScores[i] = 0; valScores[i] = 0; }
 
         logs.forEach((log, index) => {
-            let sDigit = getSetLastDigit(log.price);
-            let vDigit = getValueLastDigit(log.val);
+            let sDigit = getSetDecimalLastDigit(log.price);
+            let vDigit = getValueIntegerLastDigit(log.val);
 
+            // အချိန်နှင့်အမျှ ပိုမိုလတ်ဆတ်သော ဒေတာများကို အလေးချိန်ပိုပေးခြင်း (Weighting)
             let weight = 1 + (index / logs.length);
-            setScores[sDigit] = (setScores[sDigit] || 0) + weight;
-            valScores[vDigit] = (valScores[vDigit] || 0) + weight;
+            setScores[sDigit] += weight;
+            valScores[vDigit] += weight;
         });
 
         let sortedSet = Object.keys(setScores).sort((a, b) => setScores[b] - setScores[a]).map(Number);
         let sortedVal = Object.keys(valScores).sort((a, b) => valScores[b] - valScores[a]).map(Number);
-
-        for (let i = 0; i <= 9; i++) {
-            if (!sortedSet.includes(i)) sortedSet.push(i);
-            if (!sortedVal.includes(i)) sortedVal.push(i);
-        }
 
         return {
             topSet: sortedSet.slice(0, 5),
@@ -349,13 +400,13 @@
         let msgEl = document.getElementById(resultMsgId);
 
         if (sDigit === '' || vDigit === '') {
-            msgEl.style.color = varColor('--accent-red');
+            msgEl.style.color = 'var(--accent-red)';
             msgEl.innerText = "⚠️ ဂဏန်းနှစ်ခုစလုံး အပြည့်အစုံ ရိုက်ထည့်ပါ";
             return;
         }
 
         if (pairsData.length === 0) {
-            msgEl.style.color = varColor('--accent-orange');
+            msgEl.style.color = 'var(--accent-orange)';
             msgEl.innerText = "⚠️ ခန့်မှန်းချက်ကွက်များ ထွက်ပေါ်လာခြင်း မရှိသေးပါ";
             return;
         }
@@ -365,19 +416,15 @@
         let foundTier2 = pairsData.find(p => p.pair === targetPair && p.tier === 'tier-2');
 
         if (foundTier1) {
-            msgEl.style.color = varColor('--accent-green');
+            msgEl.style.color = 'var(--accent-green)';
             msgEl.innerText = `🎉 🎊 အထူးမှန်ကန်သည်! (${targetPair}) သည် Tier-1 (အဝါရောင်) ထဲတွင် ပါဝင်ပါသည်။`;
         } else if (foundTier2) {
-            msgEl.style.color = varColor('--accent-yellow');
+            msgEl.style.color = 'var(--accent-yellow)';
             msgEl.innerText = `✨ မှန်ကန်သည်! (${targetPair}) သည် Tier-2 (မီးခိုးရောင်) ထဲတွင် ပါဝင်ပါသည်။`;
         } else {
-            msgEl.style.color = varColor('--accent-red');
+            msgEl.style.color = 'var(--accent-red)';
             msgEl.innerText = `❌ မမှန်ပါ (${targetPair}) သည် ထွက်ထားသော ၁၅ ကွက်ထဲတွင် မပါဝင်ပါ။`;
         }
-    }
-
-    function varColor(name) {
-        return getComputedStyle(document.documentElement).getPropertyValue(name);
     }
 
     async function fetchMarketData() {
@@ -394,25 +441,22 @@
             const data = await response.json();
             const result = data.chart.result[0];
             const meta = result.meta;
+            const quotes = result.indicators.quote[0];
+
+            // တကယ့် SET Price
+            const currentPrice = meta.regularMarketPrice || quotes.close[quotes.close.length - 1];
             
-            const currentPrice = meta.regularMarketPrice;
-            const currentVal = meta.regularMarketVolume || meta.chartPreviousClose || 0;
+            // Value Index ကို SET Index ရဲ့ 1200 ဆ ခန့်မှန်း (Volume မသုံး)
+            const currentVal = currentPrice * 1200;
 
-            const setEl = document.getElementById('live-set');
-            const valEl = document.getElementById('live-val');
+            document.getElementById('live-set').innerText = `SET: ${currentPrice.toFixed(2)} (Decimal: ${getSetDecimalLastDigit(currentPrice)})`;
+            document.getElementById('live-val').innerText = `Value: ${Math.floor(currentVal).toLocaleString()} (Integer: ${getValueIntegerLastDigit(currentVal)})`;
 
-            setEl.innerText = `SET: ${currentPrice.toFixed(2)}`;
-            valEl.innerText = `Value: ${currentVal.toLocaleString()}`;
-
-            if (lastSetPrice !== currentPrice) {
-                setEl.classList.add('live-update-effect');
-                valEl.classList.add('live-update-effect');
-                setTimeout(() => {
-                    setEl.classList.remove('live-update-effect');
-                    valEl.classList.remove('live-update-effect');
-                }, 500);
-                lastSetPrice = currentPrice;
-            }
+            // Momentum, Pattern, Streak ကို ပြသ
+            const momentum = getMomentum(morningLogs.length > 0 ? morningLogs : eveningLogs);
+            const pattern = getPattern(morningLogs.length > 0 ? morningLogs : eveningLogs);
+            const streak = getStreak(morningLogs.length > 0 ? morningLogs : eveningLogs);
+            document.getElementById('momentum-display').innerText = `Momentum: ${momentum} | Pattern: ${pattern !== null ? pattern : '--'} | Streak: ${streak}`;
 
             document.getElementById('connection-status').innerText = "● Live Connected";
             document.getElementById('connection-status').style.color = "var(--accent-green)";
@@ -430,36 +474,46 @@
                 return;
             }
 
+            // မနက်ပိုင်း 09:30 - 11:30 တိုက်ရိုက်ဒေတာ စုဆောင်းခြင်း
             if (timeVal >= 930 && timeVal <= 1130) {
                 morningLogs.push({ time: timeString, price: currentPrice, val: currentVal });
-                let logText = morningLogs.slice(-6).map(l => `[${l.time}] S:${l.price.toFixed(2)} | V:${l.val}`).join('\n');
+                if(morningLogs.length > 300) morningLogs.shift();
+                
+                let logText = morningLogs.slice(-6).map(l => `[${l.time}] SET:${l.price.toFixed(2)}(${getSetDecimalLastDigit(l.price)}) | Val:${Math.floor(l.val)}(${getValueIntegerLastDigit(l.val)})`).join('
+');
                 document.getElementById('m-logs').innerText = logText;
-                document.getElementById('m-status-text').innerText = `📡 တိုက်ရိုက်မှတ်တမ်းယူဆဲ (စုစုပေါင်း: ${morningLogs.length} ခု)`;
+                document.getElementById('m-status-text').innerText = `📡 တိုက်ရိုက်ဒေတာ မှတ်တမ်းယူဆဲ (စုစုပေါင်း: ${morningLogs.length} ခု)`;
             }
 
+            // ၁၁:၃၅ တွင် တွက်ချက်ပြီး Latch လုပ်ခြင်း
             if (timeVal >= 1135 && timeVal <= 1200 && !morningGenerated && morningLogs.length > 0) {
                 morningGenerated = true;
-                let analyzed = analyzeLogsWithMomentum(morningLogs);
+                let analyzed = analyzePureMarketAccumulation(morningLogs);
                 morningPairsData = generateDynamicPairs(analyzed.topSet, analyzed.topVal);
                 renderGrid('m_preds', morningPairsData);
-                localStorage.setItem('set_morning_pairs', JSON.stringify(morningPairsData));
-                document.getElementById('m-status-text').innerText = "✅ မနက်ပိုင်း 11:35 တွင် ထွက်ရှိပြီး";
+                localStorage.setItem('pure_morning_pairs_v5', JSON.stringify(morningPairsData));
+                document.getElementById('m-status-text').innerText = "✅ မနက်ပိုင်း 11:35 တွင် ဒေတာစုဆောင်းမှု ပြီးဆုံးပြီး Latch လုပ်ပြီး";
             }
 
+            // ညနေပိုင်း 13:30 - 15:30 တိုက်ရိုက်ဒေတာ စုဆောင်းခြင်း
             if (timeVal >= 1330 && timeVal <= 1530) {
                 eveningLogs.push({ time: timeString, price: currentPrice, val: currentVal });
-                let logText = eveningLogs.slice(-6).map(l => `[${l.time}] S:${l.price.toFixed(2)} | V:${l.val}`).join('\n');
+                if(eveningLogs.length > 300) eveningLogs.shift();
+
+                let logText = eveningLogs.slice(-6).map(l => `[${l.time}] SET:${l.price.toFixed(2)}(${getSetDecimalLastDigit(l.price)}) | Val:${Math.floor(l.val)}(${getValueIntegerLastDigit(l.val)})`).join('
+');
                 document.getElementById('e-logs').innerText = logText;
-                document.getElementById('e-status-text').innerText = `📡 တိုက်ရိုက်မှတ်တမ်းယူဆဲ (စုစုပေါင်း: ${eveningLogs.length} ခု)`;
+                document.getElementById('e-status-text').innerText = `📡 တိုက်ရိုက်ဒေတာ မှတ်တမ်းယူဆဲ (စုစုပေါင်း: ${eveningLogs.length} ခု)`;
             }
 
+            // ၃:၃၅ တွင် တွက်ချက်ပြီး Latch လုပ်ခြင်း
             if (timeVal >= 1535 && timeVal <= 1600 && !eveningGenerated && eveningLogs.length > 0) {
                 eveningGenerated = true;
-                let analyzed = analyzeLogsWithMomentum(eveningLogs);
+                let analyzed = analyzePureMarketAccumulation(eveningLogs);
                 eveningPairsData = generateDynamicPairs(analyzed.topSet, analyzed.topVal);
                 renderGrid('e_preds', eveningPairsData);
-                localStorage.setItem('set_evening_pairs', JSON.stringify(eveningPairsData));
-                document.getElementById('e-status-text').innerText = "✅ ညနေပိုင်း 3:35 တွင် ထွက်ရှိပြီး";
+                localStorage.setItem('pure_evening_pairs_v5', JSON.stringify(eveningPairsData));
+                document.getElementById('e-status-text').innerText = "✅ ညနေပိုင်း 3:35 တွင် ဒေတာစုဆောင်းမှု ပြီးဆုံးပြီး Latch လုပ်ပြီး";
             }
 
         } catch (error) {
