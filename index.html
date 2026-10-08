@@ -260,7 +260,6 @@
         }
     }
 
-    // SET: ဒသမနောက်ဆုံးဂဏန်း (ဥပမာ - 1350.48 ဆိုရင် 8)
     function getSetDecimalLastDigit(price) {
         const numStr = parseFloat(price).toFixed(2);
         const decPart = numStr.split('.')[1];
@@ -268,26 +267,20 @@
         return isNaN(digit) ? 0 : digit;
     }
 
-    // Value (Turnover Traded Value): ကိန်းပြည့် (ဒသမရှေ့) ၏ နောက်ဆုံးဂဏန်း (ဥပမာ - 45,230,120 ဘတ် ဆိုရင် 0)
     function getValueIntegerLastDigit(valNum) {
         const wholeStr = Math.floor(parseFloat(valNum)).toString();
         const digit = parseInt(wholeStr.charAt(wholeStr.length - 1), 10);
         return isNaN(digit) ? 0 : digit;
     }
 
-    // Momentum Indicator (အတက်အကျ အရှိန်အဟုန်)
     function getMomentum(logs) {
         if (logs.length < 2) return "NEUTRAL";
-        
         const recent = logs.slice(-15);
         let upwardCount = 0;
-        
         for(let i = 1; i < recent.length; i++){
             if(recent[i].price > recent[i-1].price) upwardCount++;
         }
-
         const ratio = upwardCount / (recent.length - 1);
-        
         if(ratio >= 0.6) return "STRONG_UP ⬆️";
         if(ratio >= 0.5) return "UP ↗️";
         if(ratio <= 0.4) return "STRONG_DOWN ⬇️";
@@ -295,44 +288,26 @@
         return "NEUTRAL ➡️";
     }
 
-    // Pattern Analysis (ပုံစံခွဲခြမ်းစိတ်ဖြာခြင်း)
     function getPattern(logs) {
         const digits = logs.map(l => getSetDecimalLastDigit(l.price));
         if(digits.length < 5) return null;
-        
         const last5 = digits.slice(-5);
-        
-        // 0-1-0-1-0 pattern
-        if(last5[0] === last5[2] && last5[2] === last5[4]){
-            return last5[1];
-        }
-        
-        // 0-0-1-1-? pattern
-        if(last5[0] === last5[1] && last5[2] === last5[3]){
-            return last5[4];
-        }
-        
+        if(last5[0] === last5[2] && last5[2] === last5[4]) return last5[1];
+        if(last5[0] === last5[1] && last5[2] === last5[3]) return last5[4];
         return null;
     }
 
-    // Streak Analysis (တစ်ဆက်တည်း ထွက်မှု)
     function getStreak(logs) {
         const digits = logs.map(l => getSetDecimalLastDigit(l.price));
         if(digits.length < 2) return 1;
-        
         let streak = 1;
         for(let i = digits.length - 2; i >= 0; i--){
-            if(digits[i] === digits[digits.length - 1]){
-                streak++;
-            }else{
-                break;
-            }
+            if(digits[i] === digits[digits.length - 1]) streak++;
+            else break;
         }
-        
         return streak;
     }
 
-    // ဝင်လာသမျှ Tick တိုင်းကို အခြေခံပြီး Frequency & Accumulation အစစ်အမှန် တွက်ချက်ခြင်း
     function analyzePureMarketAccumulation(logs) {
         let setScores = {};
         let valScores = {};
@@ -341,8 +316,6 @@
         logs.forEach((log, index) => {
             let sDigit = getSetDecimalLastDigit(log.price);
             let vDigit = getValueIntegerLastDigit(log.val);
-
-            // အချိန်နှင့်အမျှ ပိုမိုလတ်ဆတ်သော ဒေတာများကို အလေးချိန်ပိုပေးခြင်း (Weighting)
             let weight = 1 + (index / logs.length);
             setScores[sDigit] += weight;
             valScores[vDigit] += weight;
@@ -429,30 +402,53 @@
 
     async function fetchMarketData() {
         const targetUrl = 'https://query1.finance.yahoo.com/v8/finance/chart/^SET.BK';
-        const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(targetUrl);
+        const proxyUrls = [
+            'https://api.allorigins.win/raw?url=' + encodeURIComponent(targetUrl),
+            'https://corsproxy.io/?' + encodeURIComponent(targetUrl),
+            targetUrl
+        ];
+
+        let data = null;
+        let success = false;
+
+        for (let url of proxyUrls) {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+                let response = await fetch(url, { signal: controller.signal });
+                clearTimeout(timeoutId);
+
+                if (response.ok) {
+                    const json = await response.json();
+                    if (json && json.chart && json.chart.result) {
+                        data = json;
+                        success = true;
+                        break;
+                    }
+                }
+            } catch (err) {
+                continue;
+            }
+        }
+
+        if (!success || !data) {
+            document.getElementById('connection-status').innerText = "● Connection Error (Retrying...)";
+            document.getElementById('connection-status').style.color = "var(--accent-red)";
+            return;
+        }
 
         try {
-            let response = await fetch(targetUrl).catch(() => null);
-            if (!response || !response.ok) {
-                response = await fetch(proxyUrl);
-            }
-            if (!response.ok) throw new Error("Network response failed");
-
-            const data = await response.json();
             const result = data.chart.result[0];
             const meta = result.meta;
             const quotes = result.indicators.quote[0];
 
-            // တကယ့် SET Price
             const currentPrice = meta.regularMarketPrice || quotes.close[quotes.close.length - 1];
-            
-            // Value Index ကို SET Index ရဲ့ 1200 ဆ ခန့်မှန်း (Volume မသုံး)
             const currentVal = currentPrice * 1200;
 
             document.getElementById('live-set').innerText = `SET: ${currentPrice.toFixed(2)} (Decimal: ${getSetDecimalLastDigit(currentPrice)})`;
             document.getElementById('live-val').innerText = `Value: ${Math.floor(currentVal).toLocaleString()} (Integer: ${getValueIntegerLastDigit(currentVal)})`;
 
-            // Momentum, Pattern, Streak ကို ပြသ
             const momentum = getMomentum(morningLogs.length > 0 ? morningLogs : eveningLogs);
             const pattern = getPattern(morningLogs.length > 0 ? morningLogs : eveningLogs);
             const streak = getStreak(morningLogs.length > 0 ? morningLogs : eveningLogs);
@@ -474,18 +470,15 @@
                 return;
             }
 
-            // မနက်ပိုင်း 09:30 - 11:30 တိုက်ရိုက်ဒေတာ စုဆောင်းခြင်း
             if (timeVal >= 930 && timeVal <= 1130) {
                 morningLogs.push({ time: timeString, price: currentPrice, val: currentVal });
                 if(morningLogs.length > 300) morningLogs.shift();
                 
-                let logText = morningLogs.slice(-6).map(l => `[${l.time}] SET:${l.price.toFixed(2)}(${getSetDecimalLastDigit(l.price)}) | Val:${Math.floor(l.val)}(${getValueIntegerLastDigit(l.val)})`).join('
-');
+                let logText = morningLogs.slice(-6).map(l => `[${l.time}] SET:${l.price.toFixed(2)}(${getSetDecimalLastDigit(l.price)}) | Val:${Math.floor(l.val)}(${getValueIntegerLastDigit(l.val)})`).join('\n');
                 document.getElementById('m-logs').innerText = logText;
                 document.getElementById('m-status-text').innerText = `📡 တိုက်ရိုက်ဒေတာ မှတ်တမ်းယူဆဲ (စုစုပေါင်း: ${morningLogs.length} ခု)`;
             }
 
-            // ၁၁:၃၅ တွင် တွက်ချက်ပြီး Latch လုပ်ခြင်း
             if (timeVal >= 1135 && timeVal <= 1200 && !morningGenerated && morningLogs.length > 0) {
                 morningGenerated = true;
                 let analyzed = analyzePureMarketAccumulation(morningLogs);
@@ -495,18 +488,15 @@
                 document.getElementById('m-status-text').innerText = "✅ မနက်ပိုင်း 11:35 တွင် ဒေတာစုဆောင်းမှု ပြီးဆုံးပြီး Latch လုပ်ပြီး";
             }
 
-            // ညနေပိုင်း 13:30 - 15:30 တိုက်ရိုက်ဒေတာ စုဆောင်းခြင်း
             if (timeVal >= 1330 && timeVal <= 1530) {
                 eveningLogs.push({ time: timeString, price: currentPrice, val: currentVal });
                 if(eveningLogs.length > 300) eveningLogs.shift();
 
-                let logText = eveningLogs.slice(-6).map(l => `[${l.time}] SET:${l.price.toFixed(2)}(${getSetDecimalLastDigit(l.price)}) | Val:${Math.floor(l.val)}(${getValueIntegerLastDigit(l.val)})`).join('
-');
+                let logText = eveningLogs.slice(-6).map(l => `[${l.time}] SET:${l.price.toFixed(2)}(${getSetDecimalLastDigit(l.price)}) | Val:${Math.floor(l.val)}(${getValueIntegerLastDigit(l.val)})`).join('\n');
                 document.getElementById('e-logs').innerText = logText;
                 document.getElementById('e-status-text').innerText = `📡 တိုက်ရိုက်ဒေတာ မှတ်တမ်းယူဆဲ (စုစုပေါင်း: ${eveningLogs.length} ခု)`;
             }
 
-            // ၃:၃၅ တွင် တွက်ချက်ပြီး Latch လုပ်ခြင်း
             if (timeVal >= 1535 && timeVal <= 1600 && !eveningGenerated && eveningLogs.length > 0) {
                 eveningGenerated = true;
                 let analyzed = analyzePureMarketAccumulation(eveningLogs);
